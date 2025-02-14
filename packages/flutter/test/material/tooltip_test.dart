@@ -3390,6 +3390,39 @@ void main() {
 
     await gesture.removePointer();
   });
+
+  testWidgets('Tooltip respects the given constraints', (WidgetTester tester) async {
+    final GlobalKey<TooltipState> tooltipKey = GlobalKey<TooltipState>();
+    const BoxConstraints themeConstraints = BoxConstraints.tightFor(width: 300, height: 150);
+    const BoxConstraints tooltipConstraints = BoxConstraints.tightFor(width: 500, height: 250);
+    Widget getWidgets({required bool overrideThemeConstraints}) {
+      return MaterialApp(
+        theme: ThemeData(tooltipTheme: const TooltipThemeData(constraints: themeConstraints)),
+        home: Tooltip(
+          key: tooltipKey,
+          message: tooltipText,
+          constraints: overrideThemeConstraints ? tooltipConstraints : null,
+          padding: EdgeInsets.zero,
+          child: const ColoredBox(color: Colors.green),
+        ),
+      );
+    }
+
+    final Finder textAncestors = find.ancestor(
+      of: find.text(tooltipText),
+      matching: find.byWidgetPredicate((_) => true),
+    );
+
+    await tester.pumpWidget(getWidgets(overrideThemeConstraints: false));
+    tooltipKey.currentState?.ensureTooltipVisible();
+    await tester.pump(const Duration(seconds: 2));
+    expect(tester.element(textAncestors.first).size, equals(themeConstraints.biggest));
+
+    await tester.pumpWidget(getWidgets(overrideThemeConstraints: true));
+    tooltipKey.currentState?.ensureTooltipVisible();
+    await tester.pump(const Duration(seconds: 2));
+    expect(tester.element(textAncestors.first).size, equals(tooltipConstraints.biggest));
+  });
 }
 
 Future<void> setWidgetForTooltipMode(
